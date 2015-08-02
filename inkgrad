@@ -19,7 +19,7 @@ def chcol(col, diff):
     newcol = ''
     for channel in col[0:2], col[2:4], col[4:6]:
         channel = int('0x' + channel, 0)
-        if channel > 0:
+        if channel - diff >= 0:
             newcol += '%02x' % (channel - diff)
         else:
             newcol += '%02x' % (channel + diff)
