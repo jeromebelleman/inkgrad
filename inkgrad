@@ -25,13 +25,13 @@ def chcol(col, diff):
             newcol += '%02x' % (channel + diff)
     return newcol
 
-def parsesvg(svgfile, known):
+def parsesvg(insvgfile, known, outsvgfile): # pylint: disable=too-many-branches
     '''
     Parse SVG file in search for gradient information
     '''
 
-    ingrad, instop = False, False
-    with open(svgfile) as fhl:
+    ingrad = False
+    with open(insvgfile) as fhl:
         grads = set()
         for line in fhl:
             if '<linearGradient' in line:
@@ -39,8 +39,15 @@ def parsesvg(svgfile, known):
                 stops = []
                 if known:
                     gradlines = []
-                    print line,
-            elif '</linearGradient>' in line or '/>' in line and not instop:
+                    print >> outsvgfile, line,
+            elif ingrad and 'xlink:href' in line:
+                # Not interested in referencing gradients which have no stops
+                ingrad = False
+                if known:
+                    for gradline in gradlines:
+                        print >> outsvgfile, gradline,
+                    print >> outsvgfile, line,
+            elif ingrad and '</linearGradient>' in line:
                 ingrad = False
 
                 stops = tuple(stops)
@@ -48,32 +55,25 @@ def parsesvg(svgfile, known):
                     # Change first stop until the gradient is unique
                     diff = 1
                     while stops in known:
-                        diff += 1
                         stops = tuple([chcol(stops[0], diff)]) + stops[1:]
+                        diff += 1
 
                     # Rewrite the gradient
                     i = 0
                     for gradline in gradlines:
                         match = RESTOP.search(gradline)
                         if match:
-                            print gradline[:match.start('col')] + \
+                            print >> outsvgfile, \
+                                gradline[:match.start('col')] + \
                                 stops[i] + \
                                 gradline[match.end('col'):],
                             i += 1
                         else:
-                            print gradline,
+                            print >> outsvgfile, gradline,
 
-                    print line,
+                    print >> outsvgfile, line,
                 elif stops:
                     grads.add(stops)
-            elif '<stop' in line:
-                instop = True
-                if known:
-                    gradlines.append(line)
-            elif '/>' in line and instop:
-                instop = False
-                if known:
-                    gradlines.append(line)
             elif ingrad:
                 match = RESTOP.search(line)
                 if match:
@@ -83,17 +83,16 @@ def parsesvg(svgfile, known):
                     gradlines.append(line)
             elif '</defs>' in line:
                 if known:
-                    pass
-                    # print line,
+                    print >> outsvgfile, line,
                 else:
                     break
             elif known:
-                pass
-                # print line,
+                print >> outsvgfile, line,
 
         return grads
 
 def main(): # pylint: disable=missing-docstring
+    # Parse arguments
     parser = ArgumentParser(description=DESC,
                             formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('insvgfile', metavar='INSVGFILE', nargs=2,
@@ -102,11 +101,16 @@ def main(): # pylint: disable=missing-docstring
                         help="output SVG file")
     args = parser.parse_args()
 
+    # Split input files
     src, dst = args.insvgfile
 
-    grads = parsesvg(dst, [])
+    # Parse destination file
+    grads = parsesvg(dst, [], None)
+
+    # Parse source file
     if grads:
-        parsesvg(src, grads)
+        with open(args.outsvgfile, 'w') as fhl:
+            parsesvg(src, grads, fhl)
     else:
         print >> sys.stderr, "There's no gradients in %s - you're safe" % dst
 
