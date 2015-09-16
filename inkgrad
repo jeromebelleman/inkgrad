@@ -11,6 +11,9 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 DESC = "Make gradients between 2 files unique."
 RESTOP = re.compile('stop-color:#(?P<col>[0-9a-f]{6})')
 
+NOCHANGE = "No gradients from %s needed changing - you're safe"
+NOGRAD = "No gradients in %s - you're safe"
+
 def chcol(col, diff):
     '''
     Change colour
@@ -31,6 +34,7 @@ def parsesvg(insvgfile, known, outsvgfile): # pylint: disable=too-many-branches
     '''
 
     ingrad = False
+    changed = False
     with open(insvgfile) as fhl:
         grads = set()
         for line in fhl:
@@ -57,6 +61,7 @@ def parsesvg(insvgfile, known, outsvgfile): # pylint: disable=too-many-branches
                     while stops in known:
                         stops = tuple([chcol(stops[0], diff)]) + stops[1:]
                         diff += 1
+                        changed = True
 
                     # Rewrite the gradient
                     i = 0
@@ -89,6 +94,9 @@ def parsesvg(insvgfile, known, outsvgfile): # pylint: disable=too-many-branches
             elif known:
                 print >> outsvgfile, line,
 
+        if known and not changed:
+            print >> sys.stderr, NOCHANGE % insvgfile
+
         return grads
 
 def main(): # pylint: disable=missing-docstring
@@ -112,7 +120,7 @@ def main(): # pylint: disable=missing-docstring
         with open(args.outsvgfile, 'w') as fhl:
             parsesvg(src, grads, fhl)
     else:
-        print >> sys.stderr, "There's no gradients in %s - you're safe" % dst
+        print >> sys.stderr, NOGRAD % dst
 
 if __name__ == '__main__':
     sys.exit(main())
