@@ -104,7 +104,9 @@ def main(): # pylint: disable=missing-docstring
     parser = ArgumentParser(description=DESC,
                             formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument('insvgfile', metavar='INSVGFILE', nargs=2,
-                        help="input SVG file")
+                        help="input SVG files, typically an empty one with \
+                            just the gradient object and one with the complete \
+                            destination drawing")
     parser.add_argument('outsvgfile', metavar='OUTSVGFILE',
                         help="output SVG file")
     args = parser.parse_args()
