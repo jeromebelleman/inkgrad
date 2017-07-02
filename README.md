@@ -1,3 +1,8 @@
+Make gradients between 2 files unique to overcome an annoying Inkscape bug
+which can make gradients change aspect when you copy an object between two
+files, just because there is another gradient in the destination file with
+the same stop colours.
+
 # NAME
 
 inkgrad - Make gradients between 2 files unique
